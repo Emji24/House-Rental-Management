@@ -1,0 +1,202 @@
+### Health Check
+GET http://localhost:3000/api/health
+
+### Get API Documentation
+GET http://localhost:3000/api/docs
+
+### Login as Admin
+POST http://localhost:3000/api/auth/login
+Content-Type: application/json
+
+{
+    "username": "admin",
+    "password": "admin123"
+}
+
+> {% 
+    client.global.set("auth_token", response.body.token);
+%}
+
+### Get Current User (Requires Token)
+GET http://localhost:3000/api/auth/me
+Authorization: Bearer {{auth_token}}
+
+### Get All Houses
+GET http://localhost:3000/api/houses
+Authorization: Bearer {{auth_token}}
+
+### Get Single House
+GET http://localhost:3000/api/houses/1
+Authorization: Bearer {{auth_token}}
+
+### Create New House
+POST http://localhost:3000/api/houses
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+{
+    "house_no": "UNIT-101",
+    "category_id": 1,
+    "price": 15000,
+    "description": "2 bedroom apartment with balcony"
+}
+
+### Update House
+PUT http://localhost:3000/api/houses/1
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+{
+    "house_no": "UNIT-101-A",
+    "category_id": 1,
+    "price": 16000,
+    "description": "Updated description"
+}
+
+### Delete House
+DELETE http://localhost:3000/api/houses/1
+Authorization: Bearer {{auth_token}}
+
+### Get All Tenants
+GET http://localhost:3000/api/tenants
+Authorization: Bearer {{auth_token}}
+
+### Get Single Tenant with Details
+GET http://localhost:3000/api/tenants/1
+Authorization: Bearer {{auth_token}}
+
+### Create Tenant
+POST http://localhost:3000/api/tenants
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+{
+    "firstname": "John",
+    "lastname": "Doe",
+    "middlename": "Smith",
+    "email": "john.doe@example.com",
+    "contact": "09123456789",
+    "house_id": 2,
+    "date_in": "2024-01-15"
+}
+
+### Update Tenant
+PUT http://localhost:3000/api/tenants/1
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+{
+    "firstname": "John",
+    "lastname": "Doe",
+    "middlename": "Smith Jr",
+    "email": "john.doe@example.com",
+    "contact": "09876543210",
+    "house_id": 2,
+    "date_in": "2024-01-15"
+}
+
+### Delete Tenant
+DELETE http://localhost:3000/api/tenants/1
+Authorization: Bearer {{auth_token}}
+
+### Get All Payments
+GET http://localhost:3000/api/payments
+Authorization: Bearer {{auth_token}}
+
+### Get Payments by Tenant
+GET http://localhost:3000/api/payments/tenant/1
+Authorization: Bearer {{auth_token}}
+
+### Create Payment
+POST http://localhost:3000/api/payments
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+{
+    "tenant_id": 1,
+    "amount": 15000,
+    "invoice": "INV-2024-001"
+}
+
+### Update Payment
+PUT http://localhost:3000/api/payments/1
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+{
+    "amount": 16000,
+    "invoice": "INV-2024-001-UPDATED"
+}
+
+### Delete Payment
+DELETE http://localhost:3000/api/payments/1
+Authorization: Bearer {{auth_token}}
+
+### Get Rental Balances Report
+GET http://localhost:3000/api/reports/balances
+Authorization: Bearer {{auth_token}}
+
+### Get Monthly Payments Report
+GET http://localhost:3000/api/reports/monthly-payments?month=2024-01
+Authorization: Bearer {{auth_token}}
+
+### Get Dashboard Statistics
+GET http://localhost:3000/api/reports/dashboard
+Authorization: Bearer {{auth_token}}
+
+### Get All Categories
+GET http://localhost:3000/api/categories
+Authorization: Bearer {{auth_token}}
+
+### Create Category
+POST http://localhost:3000/api/categories
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+{
+    "name": "Studio Type"
+}
+
+### Update Category
+PUT http://localhost:3000/api/categories/1
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+{
+    "name": "Studio Apartment"
+}
+
+### Delete Category
+DELETE http://localhost:3000/api/categories/1
+Authorization: Bearer {{auth_token}}
+
+### Get All Users (Admin only)
+GET http://localhost:3000/api/users
+Authorization: Bearer {{auth_token}}
+
+### Create User (Admin only)
+POST http://localhost:3000/api/users
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+{
+    "name": "Staff User",
+    "username": "staff1",
+    "password": "staff123",
+    "type": "2"
+}
+
+### Update User (Admin only)
+PUT http://localhost:3000/api/users/2
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+{
+    "name": "Staff User Updated",
+    "username": "staff1",
+    "type": "2"
+}
+
+### Delete User (Admin only)
+DELETE http://localhost:3000/api/users/2
+Authorization: Bearer {{auth_token}}
