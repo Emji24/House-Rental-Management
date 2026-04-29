@@ -35,6 +35,7 @@ const db = mysql.createPool({
     user: process.env.DB_USER || 'root',
     password: process.env.DB_PASSWORD || '',
     database: process.env.DB_NAME || 'house_rental_db',
+    port: process.env.DB_PORT || 3307, // 👈 ADD THIS LINE
     waitForConnections: true,
     connectionLimit: 10,
     queueLimit: 0
