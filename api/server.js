@@ -19,6 +19,7 @@ const paymentsRoutes = require('./routes/payments');
 const reportsRoutes = require('./routes/reports');
 const usersRoutes = require('./routes/users');
 const categoriesRoutes = require('./routes/categories');
+const desktopRoutes = require('./routes/desktop');
 
 // Middleware
 app.use(express.json());
@@ -55,6 +56,7 @@ app.use('/api/payments', paymentsRoutes);
 app.use('/api/reports', reportsRoutes);
 app.use('/api/users', usersRoutes);
 app.use('/api/categories', categoriesRoutes);
+app.use('/api/desktop', desktopRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
