@@ -29,6 +29,24 @@ function getOrCreateCategory(db, categoryName) {
     });
 }
 
+router.get('/categories', authenticateToken, (req, res) => {
+    const db = req.db;
+
+    db.query('SELECT id, name FROM categories ORDER BY name ASC', (err, rows) => {
+        if (err) {
+            return res.status(500).json({
+                success: false,
+                error: err.message
+            });
+        }
+
+        res.json({
+            success: true,
+            data: rows
+        });
+    });
+});
+
 // Desktop Properties: maps desktop property table fields to house_rental_db.houses
 router.get('/properties', authenticateToken, (req, res) => {
     const db = req.db;
