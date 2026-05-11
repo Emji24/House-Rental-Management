@@ -300,6 +300,51 @@ Class Action {
 		if($save)
 			return 1;
 	}
+	function rent_house(){
+		extract($_POST);
+
+		$house_id = isset($house_id) ? intval($house_id) : 0;
+		$firstname = $this->db->real_escape_string(trim($firstname ?? ''));
+		$middlename = $this->db->real_escape_string(trim($middlename ?? ''));
+		$lastname = $this->db->real_escape_string(trim($lastname ?? ''));
+		$email = $this->db->real_escape_string(trim($email ?? ''));
+		$contact = $this->db->real_escape_string(trim($contact ?? ''));
+		$date_in = $this->db->real_escape_string(trim($date_in ?? date('Y-m-d')));
+		$end_date = isset($end_date) && trim($end_date) != '' ? $this->db->real_escape_string(trim($end_date)) : null;
+
+		if($house_id <= 0 || $firstname == '' || $lastname == '' || $email == '' || $contact == '' || $date_in == ''){
+			return 0;
+		}
+
+		$house = $this->db->query("SELECT id FROM houses WHERE id = {$house_id} LIMIT 1");
+		if($house->num_rows == 0){
+			return 0;
+		}
+
+		$check = $this->db->query("SELECT id FROM tenants WHERE house_id = {$house_id} AND status = 1 LIMIT 1");
+		if($check->num_rows > 0){
+			return 2;
+		}
+
+		$data = " firstname = '{$firstname}' ";
+		$data .= ", middlename = '{$middlename}' ";
+		$data .= ", lastname = '{$lastname}' ";
+		$data .= ", email = '{$email}' ";
+		$data .= ", contact = '{$contact}' ";
+		$data .= ", house_id = '{$house_id}' ";
+		$data .= ", status = 1 ";
+		$data .= ", date_in = '{$date_in}' ";
+		if($end_date !== null){
+			$data .= ", end_date = '{$end_date}' ";
+		}
+
+		$save = $this->db->query("INSERT INTO tenants set $data");
+		if($save){
+			return 1;
+		}
+		return 0;
+	}
+	
 	function delete_tenant(){
 		extract($_POST);
 		$delete = $this->db->query("UPDATE tenants set status = 0 where id = ".$id);

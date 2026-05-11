@@ -75,11 +75,19 @@ if($action == "save_tenant"){
 	if($save)
 		echo $save;
 }
+
+if($action == "rent_house"){
+	$save = $crud->rent_house();
+	if($save)
+		echo $save;
+}
+
 if($action == "delete_tenant"){
 	$save = $crud->delete_tenant();
 	if($save)
 		echo $save;
 }
+
 if($action == "get_tdetails"){
 	$get = $crud->get_tdetails();
 	if($get)
@@ -91,6 +99,7 @@ if($action == "save_payment"){
 	if($save)
 		echo $save;
 }
+
 if($action == "delete_payment"){
 	$save = $crud->delete_payment();
 	if($save)
