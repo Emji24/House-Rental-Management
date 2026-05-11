@@ -32,7 +32,7 @@ function getOrCreateCategory(db, categoryName) {
 router.get('/categories', authenticateToken, (req, res) => {
     const db = req.db;
 
-    db.query('SELECT id, name FROM categories ORDER BY name ASC', (err, rows) => {
+    db.query('SELECT id, name FROM categories ORDER BY id ASC', (err, rows) => {
         if (err) {
             return res.status(500).json({
                 success: false,
@@ -45,6 +45,150 @@ router.get('/categories', authenticateToken, (req, res) => {
             data: rows
         });
     });
+});
+
+router.post('/categories', authenticateToken, authorizeAdmin, (req, res) => {
+    const db = req.db;
+    const { name } = req.body;
+
+    if (!name || name.trim() === '') {
+        return res.status(400).json({
+            success: false,
+            error: 'Category name is required'
+        });
+    }
+
+    const categoryName = name.trim();
+
+    db.query(
+        'SELECT id FROM categories WHERE name = ? LIMIT 1',
+        [categoryName],
+        (err, rows) => {
+            if (err) {
+                return res.status(500).json({
+                    success: false,
+                    error: err.message
+                });
+            }
+
+            if (rows.length > 0) {
+                return res.status(409).json({
+                    success: false,
+                    error: 'Category already exists'
+                });
+            }
+
+            db.query(
+                'INSERT INTO categories (name) VALUES (?)',
+                [categoryName],
+                (err2, result) => {
+                    if (err2) {
+                        return res.status(500).json({
+                            success: false,
+                            error: err2.message
+                        });
+                    }
+
+                    res.json({
+                        success: true,
+                        message: 'Category added successfully',
+                        data: {
+                            id: result.insertId,
+                            name: categoryName
+                        }
+                    });
+                }
+            );
+        }
+    );
+});
+
+router.put('/categories/:id', authenticateToken, authorizeAdmin, (req, res) => {
+    const db = req.db;
+    const { id } = req.params;
+    const { name } = req.body;
+
+    if (!name || name.trim() === '') {
+        return res.status(400).json({
+            success: false,
+            error: 'Category name is required'
+        });
+    }
+
+    db.query(
+        'UPDATE categories SET name = ? WHERE id = ?',
+        [name.trim(), id],
+        (err, result) => {
+            if (err) {
+                return res.status(500).json({
+                    success: false,
+                    error: err.message
+                });
+            }
+
+            if (result.affectedRows === 0) {
+                return res.status(404).json({
+                    success: false,
+                    error: 'Category not found'
+                });
+            }
+
+            res.json({
+                success: true,
+                message: 'Category updated successfully'
+            });
+        }
+    );
+});
+
+router.delete('/categories/:id', authenticateToken, authorizeAdmin, (req, res) => {
+    const db = req.db;
+    const { id } = req.params;
+
+    db.query(
+        'SELECT id FROM houses WHERE category_id = ? LIMIT 1',
+        [id],
+        (err, houses) => {
+            if (err) {
+                return res.status(500).json({
+                    success: false,
+                    error: err.message
+                });
+            }
+
+            if (houses.length > 0) {
+                return res.status(409).json({
+                    success: false,
+                    error: 'Cannot delete category because it is used by a house'
+                });
+            }
+
+            db.query(
+                'DELETE FROM categories WHERE id = ?',
+                [id],
+                (err2, result) => {
+                    if (err2) {
+                        return res.status(500).json({
+                            success: false,
+                            error: err2.message
+                        });
+                    }
+
+                    if (result.affectedRows === 0) {
+                        return res.status(404).json({
+                            success: false,
+                            error: 'Category not found'
+                        });
+                    }
+
+                    res.json({
+                        success: true,
+                        message: 'Category deleted successfully'
+                    });
+                }
+            );
+        }
+    );
 });
 
 // Desktop Properties: maps desktop property table fields to house_rental_db.houses
