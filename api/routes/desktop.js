@@ -1,5 +1,5 @@
 const express = require('express');
-const { authenticateToken, authorizeStaffOrAdmin } = require('../middleware/auth');
+const { authenticateToken, authorizeAdmin } = require('../middleware/auth');
 
 const router = express.Router();
 
@@ -70,7 +70,7 @@ router.get('/properties', authenticateToken, (req, res) => {
     });
 });
 
-router.post('/properties', authenticateToken, authorizeStaffOrAdmin, async (req, res) => {
+router.post('/properties', authenticateToken, authorizeAdmin, async (req, res) => {
     const db = req.db;
     const { property_id, address, owner_no, owner_id, p_type, rooms, property_rent } = req.body;
     const houseNo = String(property_id || '').trim();
@@ -94,7 +94,7 @@ router.post('/properties', authenticateToken, authorizeStaffOrAdmin, async (req,
     }
 });
 
-router.put('/properties/:id', authenticateToken, authorizeStaffOrAdmin, async (req, res) => {
+router.put('/properties/:id', authenticateToken, authorizeAdmin, async (req, res) => {
     const db = req.db;
     const { id } = req.params;
     const { property_id, address, owner_no, owner_id, p_type, rooms, property_rent } = req.body;
@@ -115,7 +115,7 @@ router.put('/properties/:id', authenticateToken, authorizeStaffOrAdmin, async (r
     }
 });
 
-router.delete('/properties/:id', authenticateToken, authorizeStaffOrAdmin, (req, res) => {
+router.delete('/properties/:id', authenticateToken, authorizeAdmin, (req, res) => {
     const db = req.db;
     const { id } = req.params;
     db.query('DELETE FROM houses WHERE id = ? OR house_no = ?', [id, id], (err, result) => {
@@ -150,7 +150,7 @@ router.get('/tenants', authenticateToken, (req, res) => {
     });
 });
 
-router.post('/tenants', authenticateToken, authorizeStaffOrAdmin, (req, res) => {
+router.post('/tenants', authenticateToken, authorizeAdmin, (req, res) => {
     const db = req.db;
     const { tenant_no, property_id, property_rent, start_date, end_date, tenant_name, email, contact } = req.body;
     const names = splitFullName(tenant_name);
@@ -190,7 +190,7 @@ router.post('/tenants', authenticateToken, authorizeStaffOrAdmin, (req, res) => 
     });
 });
 
-router.put('/tenants/:id', authenticateToken, authorizeStaffOrAdmin, (req, res) => {
+router.put('/tenants/:id', authenticateToken, authorizeAdmin, (req, res) => {
     const db = req.db;
     const { id } = req.params;
     const { tenant_no, property_id, start_date, end_date, tenant_name, email, contact } = req.body;
@@ -226,7 +226,7 @@ router.put('/tenants/:id', authenticateToken, authorizeStaffOrAdmin, (req, res) 
     });
 });
 
-router.delete('/tenants/:id', authenticateToken, authorizeStaffOrAdmin, (req, res) => {
+router.delete('/tenants/:id', authenticateToken, authorizeAdmin, (req, res) => {
     const db = req.db;
     const { id } = req.params;
     db.query('UPDATE tenants SET status = 0 WHERE id = ?', [id], (err, result) => {
