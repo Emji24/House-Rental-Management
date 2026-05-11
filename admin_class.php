@@ -84,29 +84,44 @@ Class Action {
 	}
 
 	function save_user(){
-		extract($_POST);
-		$data = " name = '$name' ";
-		$data .= ", username = '$username' ";
-		if(!empty($password))
-		$data .= ", password = '".md5($password)."' ";
-		$data .= ", type = '$type' ";
-		if($type == 1)
-			$establishment_id = 0;
-		$data .= ", establishment_id = '$establishment_id' ";
-		$chk = $this->db->query("Select * from users where username = '$username' and id !='$id' ")->num_rows;
-		if($chk > 0){
-			return 2;
-			exit;
-		}
-		if(empty($id)){
-			$save = $this->db->query("INSERT INTO users set ".$data);
-		}else{
-			$save = $this->db->query("UPDATE users set ".$data." where id = ".$id);
-		}
-		if($save){
-			return 1;
-		}
+    	extract($_POST);
+
+    	$id = isset($id) ? $id : '';
+
+   	 	$name = $this->db->real_escape_string($name);
+    	$username = $this->db->real_escape_string($username);
+    	$type = $this->db->real_escape_string($type);
+
+    	$id_condition = empty($id) ? "" : " AND id != '$id' ";
+
+    	$chk = $this->db->query("SELECT * FROM users WHERE username = '$username' $id_condition")->num_rows;
+
+    	if($chk > 0){
+        	return 2;
+        	exit;
+   	 	}
+
+   	 	$data = " name = '$name' ";
+    	$data .= ", username = '$username' ";
+    	$data .= ", type = '$type' ";
+
+    	if(!empty($password)){
+        	$data .= ", password = '".md5($password)."' ";
+    	}
+
+    	if(empty($id)){
+			$save = $this->db->query("INSERT INTO users SET ".$data);
+    	}else{
+        	$save = $this->db->query("UPDATE users SET ".$data." WHERE id = ".$id);
+    	}
+
+    	if($save){
+        	return 1;
+    	}else{
+        	return 3;
+    	}
 	}
+	
 	function delete_user(){
 		extract($_POST);
 		$delete = $this->db->query("DELETE FROM users where id = ".$id);

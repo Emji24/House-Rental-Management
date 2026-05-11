@@ -29,18 +29,18 @@ foreach($user->fetch_array() as $k =>$v){
 		<?php endif; ?>
 		</div>
 		<?php if(isset($meta['type']) && $meta['type'] == 3): ?>
-			<input type="hidden" name="type" value="3">
-		<?php else: ?>
-		<?php if(!isset($_GET['mtype'])): ?>
-		<div class="form-group">
-			<label for="type">User Type</label>
-			<select name="type" id="type" class="custom-select">
-				<option value="2" <?php echo isset($meta['type']) && $meta['type'] == 2 ? 'selected': '' ?>>Staff</option>
-				<option value="1" <?php echo isset($meta['type']) && $meta['type'] == 1 ? 'selected': '' ?>>Admin</option>
-			</select>
-		</div>
-		<?php endif; ?>
-		<?php endif; ?>
+    <input type="hidden" name="type" value="3">
+<?php else: ?>
+    <?php if(!isset($_GET['mtype'])): ?>
+    <div class="form-group">
+        <label for="type">User Type</label>
+        <select name="type" id="type" class="custom-select">
+            <option value="1" <?php echo isset($meta['type']) && $meta['type'] == 1 ? 'selected': '' ?>>Admin</option>
+            <option value="2" <?php echo isset($meta['type']) && $meta['type'] == 2 ? 'selected': '' ?>>Client</option>
+        </select>
+    </div>
+    <?php endif; ?>
+<?php endif; ?>
 		
 
 	</form>
@@ -60,9 +60,12 @@ foreach($user->fetch_array() as $k =>$v){
 					setTimeout(function(){
 						location.reload()
 					},1500)
+				}else if(resp == 2){
+    				$('#msg').html('<div class="alert alert-danger">Username already exists</div>')
+    				end_load()
 				}else{
-					$('#msg').html('<div class="alert alert-danger">Username already exist</div>')
-					end_load()
+    				$('#msg').html('<div class="alert alert-danger">Failed to save user. Please check database or admin_class.php.</div>')
+    				end_load()
 				}
 			}
 		})
