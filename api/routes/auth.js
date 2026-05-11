@@ -40,9 +40,9 @@ router.post('/login', [
                 return res.status(401).json({ error: 'Invalid credentials', success: false });
             }
 
-            // Check if user is admin for main admin login
-            if (user.type !== 1) {
-                return res.status(403).json({ error: 'Admin access required', success: false });
+            // Allow both Admin and Client to login
+            if (![1, 2].includes(Number(user.type))) {
+                return res.status(403).json({ error: 'Invalid user type', success: false });
             }
 
             // Generate JWT token
