@@ -131,7 +131,7 @@ router.get('/tenants', authenticateToken, (req, res) => {
     const query = `
         SELECT
             t.id AS tenant_id,
-            COALESCE(t.tenant_no, '') AS tenant_no,
+            COALESCE(t.contact, '') AS tenant_no,
             COALESCE(h.owner_id, '') AS owner_id,
             h.price AS property_rent,
             t.date_in AS start_date,
@@ -152,7 +152,7 @@ router.get('/tenants', authenticateToken, (req, res) => {
 
 router.post('/tenants', authenticateToken, authorizeAdmin, (req, res) => {
     const db = req.db;
-    const { tenant_no, property_id, property_rent, start_date, end_date, tenant_name, email, contact } = req.body;
+    const { tenant_no, property_id, property_rent, start_date, end_date, tenant_name, email } = req.body;
     const names = splitFullName(tenant_name);
     const houseNo = String(property_id || '').trim();
 
@@ -171,18 +171,18 @@ router.post('/tenants', authenticateToken, authorizeAdmin, (req, res) => {
             const query = `
                 INSERT INTO tenants (firstname, middlename, lastname, email, contact, house_id, status, date_in, tenant_no, end_date)
                 VALUES (?, ?, ?, ?, ?, ?, 1, ?, ?, ?)
-            `;
-            db.query(query, [
+                `;
+                db.query(query, [
                 names.firstname,
                 names.middlename,
                 names.lastname,
                 email || 'tenant@example.com',
-                contact || 'N/A',
+                tenant_no || '',
                 houseId,
                 start_date || new Date().toISOString().slice(0, 10),
                 tenant_no || '',
                 end_date || null
-            ], (err3, result) => {
+], (err3, result) => {
                 if (err3) return res.status(500).json({ success: false, error: err3.message });
                 res.json({ success: true, message: 'Tenant saved', data: { id: result.insertId } });
             });
@@ -193,7 +193,7 @@ router.post('/tenants', authenticateToken, authorizeAdmin, (req, res) => {
 router.put('/tenants/:id', authenticateToken, authorizeAdmin, (req, res) => {
     const db = req.db;
     const { id } = req.params;
-    const { tenant_no, property_id, start_date, end_date, tenant_name, email, contact } = req.body;
+    const { tenant_no, property_id, start_date, end_date, tenant_name, email } = req.body;
     const names = splitFullName(tenant_name);
     const houseNo = String(property_id || '').trim();
 
@@ -208,16 +208,16 @@ router.put('/tenants/:id', authenticateToken, authorizeAdmin, (req, res) => {
             WHERE id=? AND status=1
         `;
         db.query(query, [
-            names.firstname,
-            names.middlename,
-            names.lastname,
-            email || 'tenant@example.com',
-            contact || 'N/A',
-            houseId,
-            start_date || new Date().toISOString().slice(0, 10),
-            tenant_no || '',
-            end_date || null,
-            id
+        names.firstname,
+        names.middlename,
+        names.lastname,
+        email || 'tenant@example.com',
+        tenant_no || '',
+        houseId,
+        start_date || new Date().toISOString().slice(0, 10),
+        tenant_no || '',
+        end_date || null,
+        id
         ], (err2, result) => {
             if (err2) return res.status(500).json({ success: false, error: err2.message });
             if (result.affectedRows === 0) return res.status(404).json({ success: false, error: 'Tenant not found' });
