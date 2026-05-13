@@ -1,412 +1,246 @@
 <?php
 session_start();
 ini_set('display_errors', 1);
-Class Action {
-	private $db;
+require_once 'api_client.php';
 
-	public function __construct() {
-		ob_start();
-   	include 'db_connect.php';
-    
-    $this->db = $conn;
-	}
-	function __destruct() {
-	    $this->db->close();
-	    ob_end_flush();
-	}
+class Action {
 
-	function login(){
-		
-			extract($_POST);		
-			$qry = $this->db->query("SELECT * FROM users where username = '".$username."' and password = '".md5($password)."' ");
-			if($qry->num_rows > 0){
-				foreach ($qry->fetch_array() as $key => $value) {
-					if($key != 'passwors' && !is_numeric($key))
-						$_SESSION['login_'.$key] = $value;
-				}
-				if($_SESSION['login_type'] != 1){
-					foreach ($_SESSION as $key => $value) {
-						unset($_SESSION[$key]);
-					}
-					return 2 ;
-					exit;
-				}
-					return 1;
-			}else{
-				return 3;
-			}
-	}
-	function login2(){
-		
-			extract($_POST);
-			if(isset($email))
-				$username = $email;
-		$qry = $this->db->query("SELECT * FROM users where username = '".$username."' and password = '".md5($password)."' ");
-		if($qry->num_rows > 0){
-			foreach ($qry->fetch_array() as $key => $value) {
-				if($key != 'passwors' && !is_numeric($key))
-					$_SESSION['login_'.$key] = $value;
-			}
-			if($_SESSION['login_alumnus_id'] > 0){
-				$bio = $this->db->query("SELECT * FROM alumnus_bio where id = ".$_SESSION['login_alumnus_id']);
-				if($bio->num_rows > 0){
-					foreach ($bio->fetch_array() as $key => $value) {
-						if($key != 'passwors' && !is_numeric($key))
-							$_SESSION['bio'][$key] = $value;
-					}
-				}
-			}
-			if($_SESSION['bio']['status'] != 1){
-					foreach ($_SESSION as $key => $value) {
-						unset($_SESSION[$key]);
-					}
-					return 2 ;
-					exit;
-				}
-				return 1;
-		}else{
-			return 3;
-		}
-	}
-	function logout(){
-		session_destroy();
-		foreach ($_SESSION as $key => $value) {
-			unset($_SESSION[$key]);
-		}
-		header("location:login.php");
-	}
-	function logout2(){
-		session_destroy();
-		foreach ($_SESSION as $key => $value) {
-			unset($_SESSION[$key]);
-		}
-		header("location:../index.php");
-	}
+    private function oldResponseCode($response, $duplicateCode = 2) {
+        if (!empty($response['success'])) {
+            return 1;
+        }
+        if (isset($response['status']) && $response['status'] == 409) {
+            return $duplicateCode;
+        }
+        return 3;
+    }
 
-	function save_user(){
-    	extract($_POST);
+    function login(){
+        $username = $_POST['username'] ?? '';
+        $password = $_POST['password'] ?? '';
 
-    	$id = isset($id) ? $id : '';
+        $response = api_request('POST', '/auth/login', [
+            'username' => $username,
+            'password' => $password
+        ], false);
 
-   	 	$name = $this->db->real_escape_string($name);
-    	$username = $this->db->real_escape_string($username);
-    	$type = $this->db->real_escape_string($type);
+        if (!empty($response['success']) && !empty($response['token']) && !empty($response['user'])) {
+            $_SESSION['api_token'] = $response['token'];
 
-    	$id_condition = empty($id) ? "" : " AND id != '$id' ";
+            foreach ($response['user'] as $key => $value) {
+                if ($key !== 'password') {
+                    $_SESSION['login_' . $key] = $value;
+                }
+            }
+            return 1;
+        }
 
-    	$chk = $this->db->query("SELECT * FROM users WHERE username = '$username' $id_condition")->num_rows;
+        if (isset($response['status']) && $response['status'] == 403) {
+            return 2;
+        }
+        return 3;
+    }
 
-    	if($chk > 0){
-        	return 2;
-        	exit;
-   	 	}
+    function login2(){
+        return $this->login();
+    }
 
-   	 	$data = " name = '$name' ";
-    	$data .= ", username = '$username' ";
-    	$data .= ", type = '$type' ";
+    function logout(){
+        session_destroy();
+        foreach ($_SESSION as $key => $value) {
+            unset($_SESSION[$key]);
+        }
+        header('location:login.php');
+    }
 
-    	if(!empty($password)){
-        	$data .= ", password = '".md5($password)."' ";
-    	}
+    function logout2(){
+        return $this->logout();
+    }
 
-    	if(empty($id)){
-			$save = $this->db->query("INSERT INTO users SET ".$data);
-    	}else{
-        	$save = $this->db->query("UPDATE users SET ".$data." WHERE id = ".$id);
-    	}
+    function save_user(){
+        $id = $_POST['id'] ?? '';
+        $payload = [
+            'name' => $_POST['name'] ?? '',
+            'username' => $_POST['username'] ?? '',
+            'type' => $_POST['type'] ?? ''
+        ];
 
-    	if($save){
-        	return 1;
-    	}else{
-        	return 3;
-    	}
-	}
-	
-	function delete_user(){
-		extract($_POST);
-		$delete = $this->db->query("DELETE FROM users where id = ".$id);
-		if($delete)
-			return 1;
-	}
-	function signup(){
-		extract($_POST);
-		$data = " name = '".$firstname.' '.$lastname."' ";
-		$data .= ", username = '$email' ";
-		$data .= ", password = '".md5($password)."' ";
-		$chk = $this->db->query("SELECT * FROM users where username = '$email' ")->num_rows;
-		if($chk > 0){
-			return 2;
-			exit;
-		}
-			$save = $this->db->query("INSERT INTO users set ".$data);
-		if($save){
-			$uid = $this->db->insert_id;
-			$data = '';
-			foreach($_POST as $k => $v){
-				if($k =='password')
-					continue;
-				if(empty($data) && !is_numeric($k) )
-					$data = " $k = '$v' ";
-				else
-					$data .= ", $k = '$v' ";
-			}
-			if($_FILES['img']['tmp_name'] != ''){
-							$fname = strtotime(date('y-m-d H:i')).'_'.$_FILES['img']['name'];
-							$move = move_uploaded_file($_FILES['img']['tmp_name'],'assets/uploads/'. $fname);
-							$data .= ", avatar = '$fname' ";
+        if (!empty($_POST['password'])) {
+            $payload['password'] = $_POST['password'];
+        }
 
-			}
-			$save_alumni = $this->db->query("INSERT INTO alumnus_bio set $data ");
-			if($data){
-				$aid = $this->db->insert_id;
-				$this->db->query("UPDATE users set alumnus_id = $aid where id = $uid ");
-				$login = $this->login2();
-				if($login)
-				return 1;
-			}
-		}
-	}
-	function update_account(){
-		extract($_POST);
-		$data = " name = '".$firstname.' '.$lastname."' ";
-		$data .= ", username = '$email' ";
-		if(!empty($password))
-		$data .= ", password = '".md5($password)."' ";
-		$chk = $this->db->query("SELECT * FROM users where username = '$email' and id != '{$_SESSION['login_id']}' ")->num_rows;
-		if($chk > 0){
-			return 2;
-			exit;
-		}
-			$save = $this->db->query("UPDATE users set $data where id = '{$_SESSION['login_id']}' ");
-		if($save){
-			$data = '';
-			foreach($_POST as $k => $v){
-				if($k =='password')
-					continue;
-				if(empty($data) && !is_numeric($k) )
-					$data = " $k = '$v' ";
-				else
-					$data .= ", $k = '$v' ";
-			}
-			if($_FILES['img']['tmp_name'] != ''){
-							$fname = strtotime(date('y-m-d H:i')).'_'.$_FILES['img']['name'];
-							$move = move_uploaded_file($_FILES['img']['tmp_name'],'assets/uploads/'. $fname);
-							$data .= ", avatar = '$fname' ";
+        if (empty($id)) {
+            $response = api_request('POST', '/users', $payload);
+        } else {
+            $response = api_request('PUT', '/users/' . $id, $payload);
+        }
 
-			}
-			$save_alumni = $this->db->query("UPDATE alumnus_bio set $data where id = '{$_SESSION['bio']['id']}' ");
-			if($data){
-				foreach ($_SESSION as $key => $value) {
-					unset($_SESSION[$key]);
-				}
-				$login = $this->login2();
-				if($login)
-				return 1;
-			}
-		}
-	}
+        return $this->oldResponseCode($response, 2);
+    }
 
-	function save_settings(){
-		extract($_POST);
-		$data = " name = '".str_replace("'","&#x2019;",$name)."' ";
-		$data .= ", email = '$email' ";
-		$data .= ", contact = '$contact' ";
-		$data .= ", about_content = '".htmlentities(str_replace("'","&#x2019;",$about))."' ";
-		if($_FILES['img']['tmp_name'] != ''){
-						$fname = strtotime(date('y-m-d H:i')).'_'.$_FILES['img']['name'];
-						$move = move_uploaded_file($_FILES['img']['tmp_name'],'assets/uploads/'. $fname);
-					$data .= ", cover_img = '$fname' ";
+    function delete_user(){
+        $id = $_POST['id'] ?? '';
+        $response = api_request('DELETE', '/users/' . $id);
+        return !empty($response['success']) ? 1 : 3;
+    }
 
-		}
-		
-		// echo "INSERT INTO system_settings set ".$data;
-		$chk = $this->db->query("SELECT * FROM system_settings");
-		if($chk->num_rows > 0){
-			$save = $this->db->query("UPDATE system_settings set ".$data);
-		}else{
-			$save = $this->db->query("INSERT INTO system_settings set ".$data);
-		}
-		if($save){
-		$query = $this->db->query("SELECT * FROM system_settings limit 1")->fetch_array();
-		foreach ($query as $key => $value) {
-			if(!is_numeric($key))
-				$_SESSION['system'][$key] = $value;
-		}
+    function signup(){
+        // This old template uses alumnus_bio, which does not belong to the house rental API.
+        // For house rental, create users through the admin Users page instead.
+        return 3;
+    }
 
-			return 1;
-				}
-	}
+    function update_account(){
+        $id = $_SESSION['login_id'] ?? '';
+        if (empty($id)) return 3;
 
-	
-	function save_category(){
-		extract($_POST);
-		$data = " name = '$name' ";
-			if(empty($id)){
-				$save = $this->db->query("INSERT INTO categories set $data");
-			}else{
-				$save = $this->db->query("UPDATE categories set $data where id = $id");
-			}
-		if($save)
-			return 1;
-	}
-	function delete_category(){
-		extract($_POST);
-		$delete = $this->db->query("DELETE FROM categories where id = ".$id);
-		if($delete){
-			return 1;
-		}
-	}
-	function save_house(){
-		extract($_POST);
-		$data = " house_no = '$house_no' ";
-		$data .= ", description = '$description' ";
-		$data .= ", category_id = '$category_id' ";
-		$data .= ", price = '$price' ";
-		$chk = $this->db->query("SELECT * FROM houses where house_no = '$house_no' ")->num_rows;
-		if($chk > 0 ){
-			return 2;
-			exit;
-		}
-			if(empty($id)){
-				$save = $this->db->query("INSERT INTO houses set $data");
-			}else{
-				$save = $this->db->query("UPDATE houses set $data where id = $id");
-			}
-		if($save)
-			return 1;
-	}
-	function delete_house(){
-		extract($_POST);
-		$delete = $this->db->query("DELETE FROM houses where id = ".$id);
-		if($delete){
-			return 1;
-		}
-	}
-	function save_tenant(){
-		extract($_POST);
-		$data = " firstname = '$firstname' ";
-		$data .= ", lastname = '$lastname' ";
-		$data .= ", middlename = '$middlename' ";
-		$data .= ", email = '$email' ";
-		$data .= ", contact = '$contact' ";
-		$data .= ", house_id = '$house_id' ";
-		$data .= ", date_in = '$date_in' ";
-			if(empty($id)){
-				
-				$save = $this->db->query("INSERT INTO tenants set $data");
-			}else{
-				$save = $this->db->query("UPDATE tenants set $data where id = $id");
-			}
-		if($save)
-			return 1;
-	}
-	function rent_house(){
-		extract($_POST);
+        $payload = [
+            'name' => trim(($_POST['firstname'] ?? '') . ' ' . ($_POST['lastname'] ?? '')),
+            'username' => $_POST['email'] ?? ($_SESSION['login_username'] ?? ''),
+            'type' => $_SESSION['login_type'] ?? 2
+        ];
+        if (!empty($_POST['password'])) {
+            $payload['password'] = $_POST['password'];
+        }
 
-		$house_id = isset($house_id) ? intval($house_id) : 0;
-		$firstname = $this->db->real_escape_string(trim($firstname ?? ''));
-		$middlename = $this->db->real_escape_string(trim($middlename ?? ''));
-		$lastname = $this->db->real_escape_string(trim($lastname ?? ''));
-		$email = $this->db->real_escape_string(trim($email ?? ''));
-		$contact = $this->db->real_escape_string(trim($contact ?? ''));
-		$date_in = $this->db->real_escape_string(trim($date_in ?? date('Y-m-d')));
-		$end_date = isset($end_date) && trim($end_date) != '' ? $this->db->real_escape_string(trim($end_date)) : null;
+        $response = api_request('PUT', '/users/' . $id, $payload);
+        return $this->oldResponseCode($response, 2);
+    }
 
-		if($house_id <= 0 || $firstname == '' || $lastname == '' || $email == '' || $contact == '' || $date_in == ''){
-			return 0;
-		}
+    function save_settings(){
+        $payload = [
+            'name' => $_POST['name'] ?? '',
+            'email' => $_POST['email'] ?? '',
+            'contact' => $_POST['contact'] ?? '',
+            'about_content' => $_POST['about'] ?? ($_POST['about_content'] ?? '')
+        ];
 
-		$house = $this->db->query("SELECT id FROM houses WHERE id = {$house_id} LIMIT 1");
-		if($house->num_rows == 0){
-			return 0;
-		}
+        $response = api_request('PUT', '/settings', $payload);
 
-		$check = $this->db->query("SELECT id FROM tenants WHERE house_id = {$house_id} AND status = 1 LIMIT 1");
-		if($check->num_rows > 0){
-			return 2;
-		}
+        if (!empty($response['success'])) {
+            $_SESSION['system'] = $response['data'] ?? $payload;
+            return 1;
+        }
+        return 3;
+    }
 
-		$data = " firstname = '{$firstname}' ";
-		$data .= ", middlename = '{$middlename}' ";
-		$data .= ", lastname = '{$lastname}' ";
-		$data .= ", email = '{$email}' ";
-		$data .= ", contact = '{$contact}' ";
-		$data .= ", house_id = '{$house_id}' ";
-		$data .= ", status = 1 ";
-		$data .= ", date_in = '{$date_in}' ";
-		if($end_date !== null){
-			$data .= ", end_date = '{$end_date}' ";
-		}
+    function save_category(){
+        $id = $_POST['id'] ?? '';
+        $payload = ['name' => $_POST['name'] ?? ''];
 
-		$save = $this->db->query("INSERT INTO tenants set $data");
-		if($save){
-			return 1;
-		}
-		return 0;
-	}
-	
-	function delete_tenant(){
-		extract($_POST);
-		$delete = $this->db->query("UPDATE tenants set status = 0 where id = ".$id);
-		if($delete){
-			return 1;
-		}
-	}
-	function get_tdetails(){
-		extract($_POST);
-		$data =array();
-		$tenants =$this->db->query("SELECT t.*,concat(t.lastname,', ',t.firstname,' ',t.middlename) as name,h.house_no,h.price FROM tenants t inner join houses h on h.id = t.house_id where t.id = {$id} ");
-		foreach($tenants->fetch_array() as $k => $v){
-			if(!is_numeric($k)){
-				$$k = $v;
-			}
-		}
-		$months = abs(strtotime(date('Y-m-d')." 23:59:59") - strtotime($date_in." 23:59:59"));
-		$months = floor(($months) / (30*60*60*24));
-		$data['months'] = $months;
-		$payable= abs($price * $months);
-		$data['payable'] = number_format($payable,2);
-		$paid = $this->db->query("SELECT SUM(amount) as paid FROM payments where id != '$pid' and tenant_id =".$id);
-		$last_payment = $this->db->query("SELECT * FROM payments where id != '$pid' and tenant_id =".$id." order by unix_timestamp(date_created) desc limit 1");
-		$paid = $paid->num_rows > 0 ? $paid->fetch_array()['paid'] : 0;
-		$data['paid'] = number_format($paid,2);
-		$data['last_payment'] = $last_payment->num_rows > 0 ? date("M d, Y",strtotime($last_payment->fetch_array()['date_created'])) : 'N/A';
-		$data['outstanding'] = number_format($payable - $paid,2);
-		$data['price'] = number_format($price,2);
-		$data['name'] = ucwords($name);
-		$data['rent_started'] = date('M d, Y',strtotime($date_in));
+        if (empty($id)) {
+            $response = api_request('POST', '/categories', $payload);
+        } else {
+            $response = api_request('PUT', '/categories/' . $id, $payload);
+        }
 
-		return json_encode($data);
-	}
-	
-	function save_payment(){
-		extract($_POST);
-		$data = "";
-		foreach($_POST as $k => $v){
-			if(!in_array($k, array('id','ref_code')) && !is_numeric($k)){
-				if(empty($data)){
-					$data .= " $k='$v' ";
-				}else{
-					$data .= ", $k='$v' ";
-				}
-			}
-		}
-		if(empty($id)){
-			$save = $this->db->query("INSERT INTO payments set $data");
-			$id=$this->db->insert_id;
-		}else{
-			$save = $this->db->query("UPDATE payments set $data where id = $id");
-		}
+        return $this->oldResponseCode($response);
+    }
 
-		if($save){
-			return 1;
-		}
-	}
-	function delete_payment(){
-		extract($_POST);
-		$delete = $this->db->query("DELETE FROM payments where id = ".$id);
-		if($delete){
-			return 1;
-		}
-	}
+    function delete_category(){
+        $id = $_POST['id'] ?? '';
+        $response = api_request('DELETE', '/categories/' . $id);
+        return !empty($response['success']) ? 1 : 3;
+    }
+
+    function save_house(){
+        $id = $_POST['id'] ?? '';
+        $payload = [
+            'house_no' => $_POST['house_no'] ?? '',
+            'description' => $_POST['description'] ?? '',
+            'category_id' => $_POST['category_id'] ?? '',
+            'price' => $_POST['price'] ?? ''
+        ];
+
+        if (empty($id)) {
+            $response = api_request('POST', '/houses', $payload);
+        } else {
+            $response = api_request('PUT', '/houses/' . $id, $payload);
+        }
+
+        return $this->oldResponseCode($response, 2);
+    }
+
+    function delete_house(){
+        $id = $_POST['id'] ?? '';
+        $response = api_request('DELETE', '/houses/' . $id);
+        return !empty($response['success']) ? 1 : 3;
+    }
+
+    function save_tenant(){
+        $id = $_POST['id'] ?? '';
+        $payload = [
+            'firstname' => $_POST['firstname'] ?? '',
+            'lastname' => $_POST['lastname'] ?? '',
+            'middlename' => $_POST['middlename'] ?? '',
+            'email' => $_POST['email'] ?? '',
+            'contact' => $_POST['contact'] ?? '',
+            'house_id' => $_POST['house_id'] ?? '',
+            'date_in' => $_POST['date_in'] ?? date('Y-m-d')
+        ];
+
+        if (empty($id)) {
+            $response = api_request('POST', '/tenants', $payload);
+        } else {
+            $response = api_request('PUT', '/tenants/' . $id, $payload);
+        }
+
+        return $this->oldResponseCode($response, 2);
+    }
+
+    function rent_house(){
+        return $this->save_tenant();
+    }
+
+    function delete_tenant(){
+        $id = $_POST['id'] ?? '';
+        $response = api_request('DELETE', '/tenants/' . $id);
+        return !empty($response['success']) ? 1 : 3;
+    }
+
+    function get_tdetails(){
+        $id = $_POST['id'] ?? '';
+        $response = api_request('GET', '/tenants/' . $id);
+
+        if (empty($response['success']) || empty($response['data'])) {
+            return json_encode([]);
+        }
+
+        $t = $response['data'];
+        $data = [];
+        $data['months'] = $t['payable_months'] ?? 0;
+        $data['payable'] = number_format((float)($t['payable_amount'] ?? 0), 2);
+        $data['paid'] = number_format((float)($t['total_paid'] ?? 0), 2);
+        $data['last_payment'] = !empty($t['last_payment']['date_created']) ? date('M d, Y', strtotime($t['last_payment']['date_created'])) : 'N/A';
+        $data['outstanding'] = number_format((float)($t['outstanding_balance'] ?? 0), 2);
+        $data['price'] = number_format((float)($t['monthly_rate'] ?? 0), 2);
+        $data['name'] = ucwords($t['full_name'] ?? '');
+        $data['rent_started'] = !empty($t['date_in']) ? date('M d, Y', strtotime($t['date_in'])) : 'N/A';
+
+        return json_encode($data);
+    }
+
+    function save_payment(){
+        $id = $_POST['id'] ?? '';
+        $payload = [
+            'tenant_id' => $_POST['tenant_id'] ?? '',
+            'amount' => $_POST['amount'] ?? '',
+            'invoice' => $_POST['invoice'] ?? ($_POST['ref_code'] ?? '')
+        ];
+
+        if (empty($id)) {
+            $response = api_request('POST', '/payments', $payload);
+        } else {
+            $response = api_request('PUT', '/payments/' . $id, $payload);
+        }
+
+        return !empty($response['success']) ? 1 : 3;
+    }
+
+    function delete_payment(){
+        $id = $_POST['id'] ?? '';
+        $response = api_request('DELETE', '/payments/' . $id);
+        return !empty($response['success']) ? 1 : 3;
+    }
 }
+?>
